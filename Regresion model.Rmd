@@ -1,0 +1,131 @@
+---
+title: "Regression Model"
+author: "Muhammad Hamza Ali Khan"
+date: "18 May 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+#Task A: Linear Regression
+##A1: Updating missing values
+
+After investigating the dataset we found some missing values denoted by '?' in the column horsepower. We know that horsepower is a continous variable; since its is a contionus variable we shall be using mean imputation to impute the missing value. We will first replace the '?' with Na and later impute them using mean imputation. 
+
+The following code describes the process:
+
+```{r}
+#Reading the data
+df = read.csv(file="auto_mpg_train.csv")
+#Displaying the data
+head(df)
+
+#Checking data type
+sapply(df, class)
+
+#Displays columns and rows that have the '?'
+which(df == '?', arr.ind=T)
+
+#Replacing the missing values with NA
+df$horsepower[df$horsepower=="?"] <- NA
+
+#Checking if values have been replaces by null values
+df[is.na(df$horsepower),]
+
+#Converting data type of the horsepower column
+df$horsepower <- as.numeric(as.character(df$horsepower))
+
+#imputing the value
+df$horsepower[is.na(df$horsepower)] = mean(df$horsepower, na.rm=TRUE)
+
+#Checking if values have been imputed
+df[c(33,127,281,287,305,325),]
+
+#Writing the imputed value data set to csv
+write.csv(df, file = "auto_mpg_train_new.csv")
+
+```
+##A2: Pair plots
+
+After imputing the values the next step involves drawing an all pair plot. Although the pair plot shows relationship between many different variable we will be describing the relationship of mpg with the other variables.
+
+```{r fig1,fig.height=35, fig.width=30}
+#function to print an all pair plot
+pairs(df[1:8],cex=5)
+```
+It can be seen from the pair plot above that mpg seems to have a negative correlation with displacement, horsepower and weights. The cylinder and origin are discret variables it can be seen that there is a discrete relationship that these 2 variables have with mpg; it is not very evident that the relationship is positive or negative or infact there is a distinct pattern among varibales.
+
+It can be further seen from the plot that mpg has a positive relationship with acceleration but on the other hand the relationship among mpg and model.year is very random there doesnt seem to be a positive or negative correlation.
+
+This means that the cars which are heavier or the with higher horsepower will consume more fuel but they would have a better acceleration. Among the variables identified to have a corelation with mpg the displacement, horsepower and weights seems to have a higher correlation since the spread is a lot smaller. It also seems as though the variables of horsepower, weight and displacement have some affect of one another and their interaction might have an affect on the mpg.
+
+###A3: Initial Set of variables
+Although we have identified some variables as discrete(cylinder,origin) and some as random(model.year) we shall use all of them as the initial set of variables because it can be seen below that they have a correlation with mpg.
+An important thing to note is that using all variables is overfitting but we will consider that as the first set of initial model. We shall later improve our model which would be seen later in this report.
+```{r}
+#Correlation of cylinder and mpg
+print(cor(df$mpg,df$cylinders))
+
+#Correlation of origin and mpg
+print(cor(df$mpg,df$origin))
+
+#Correlation of model.year and mpg
+print(cor(df$mpg,df$model.year))
+```
+
+###A4: Building the model
+```{r}
+#Creating a linear model
+mpg_model = lm (mpg ~  cylinders+ displacement + horsepower+ weight + acceleration+model.year+origin,data=df)
+
+#Printing summary of the model
+summary(mpg_model)
+
+```
+
+The adjusted R-squared measures the proportion of the variation in our dependent variable mpg explained by our independent variables for a linear regression model. We can see from the summary above that the R-squared values is 0.8183 which shows that 82% of the variates of our dependent variable can be predicted using our model.
+
+The estimates for the lm are 2.690e-02, -1.953e-02, -7.175e-03, 1.292e-01, 7.403e-01 and 1.431e+00 for displacement, horsepower, weight, acceleration, model.year and origin repectiving. These estimates show the co-efficent or the beta values for our model.
+
+The standard error is the estimated variability in the cooficents due to sampling variability. The variables that have a standard error higher or close to its estimates indicates that perhapes they do not affect the dependant variable at all which in our case can be seen in the cylinder, horsepower and the acceleration case.
+
+T value is the ratio of the estimate with the standard error which shows how big is the estimate relative to the standard error; the bigger the estimate is relative to its standard error is bigger the t score.
+
+The t value then falls on a distribution and we get a probablility or a p value; this p value shows how statistically significant our estimates are so the p value shows statistical significance. The lower the p-values the more significant they are to our model which in this case can be seen are origin, model.year and weight.
+
+###A5: Testing the model
+
+```{r}
+#reading in the test data set
+df1 = read.csv(file="auto_mpg_test.csv")
+head(df1)
+
+#predicting values of the mpg of the test data set using our model
+mpg_value = predict(mpg_model,df1)
+difference = mpg_value - df1$mpg
+
+#finding the mean squared error
+the_mse = sqrt(mean(difference^2))
+
+#printing the mean squared error value 
+cat("The mean squared error is:",the_mse)
+```
+
+##A6: Imporoving the model
+```{r}
+#building the new model
+mpg_model_2 = lm (mpg ~  weight + model.year*origin,data=df)
+
+#printing summary of the model
+summary(mpg_model_2)
+
+#finding mse for the model
+mpg_value_2 = predict(mpg_model_2,df1)
+difference1 = mpg_value_2 - df1$mpg
+the_mse1 = sqrt(mean(difference1^2))
+cat('The mean squared error for the new model is:',the_mse1)
+```
+The best way to test a model is by looking at its r squared value and also by looking at the mse values.
+
+After dropping out some of the initial values proposed A3 and including interaction among variables we can see that the r squared values increased from 0.80 to 0.82 and the mean squared error of the new model is also lower that the original proposed model. 
+Hence, we can say that the new suggested model is a better than the old one proposed in A3 which was as mentioned before overfitted.
